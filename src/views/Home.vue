@@ -10,25 +10,51 @@
       <div class="home-todo">
         <div class="todo-title">未完成</div>
         <div class="todo-list">
-          <div class="item" v-for="item in list" :key="item.id" @click="todoClick(item)">
-            <div :class="['icon', {'todo-icon': todoId === item.id}]"></div>
-            <div class="content">
-              <div class="txt">{{item.todo}}</div>
-              <div class="time">{{item.time}}</div>
-            </div>
-          </div>
+          <template v-if="list.some(i => !i.finished)">
+            <template v-for="item in list">
+              <div class="item" :key="item.id" @click="todoClick(item)" v-if="!item.finished">
+                <div :class="['icon', {'todo-icon': item.icon}]"></div>
+                <div class="content">
+                  <div class="left">
+                    <div class="txt">{{item.todo}}</div>
+                    <div class="time">{{item.time}}</div>
+                  </div>
+                  <div class="del" @click.stop="del(item)">
+                    <img src="@/assets/delete.png" alt="del">
+                  </div>
+                </div>
+              </div>
+            </template>
+          </template>
+          <template v-else>
+            <img class="no-list" src="@/assets/none.png" alt="none">
+            <div class="no-tip">暂无记录</div>
+          </template>
         </div>
       </div>
       <div class="home-do">
         <div class="do-title">已完成</div>
         <div class="do-list">
-          <div class="item" v-for="item in list" :key="item.id" @click="doClick(item)">
-            <div :class="['icon', {'do-icon': doId === item.id}]"></div>
-            <div class="content">
-              <div class="txt">{{item.todo}}</div>
-              <div class="time">{{item.time}}</div>
-            </div>
-          </div>
+          <template v-if="list.some(i => i.finished)">
+            <template v-for="item in list">
+              <div class="item" :key="item.id" @click="doClick(item)" v-if="item.finished">
+                <div :class="['icon', {'do-icon': item.icon}]"></div>
+                <div class="content">
+                  <div class="left">
+                    <div class="txt">{{item.todo}}</div>
+                    <div class="time">{{item.time}}</div>
+                  </div>
+                  <div class="del" @click.stop="del(item)">
+                    <img src="@/assets/delete.png" alt="del">
+                  </div>
+                </div>
+              </div>
+            </template>
+          </template>
+          <template v-else>
+            <img class="no-list" src="@/assets/none.png" alt="none">
+            <div class="no-tip">暂无记录</div>
+          </template>
         </div>
       </div>
     </div>
@@ -44,22 +70,41 @@ export default {
     const { ctx } = getCurrentInstance();
     const text = ref('');
     const list = ref([]);
-    const todoId = ref(0);
-    const doId = ref(0);
+    let timer = null;
     const addList = () => {
       if (ctx.text === '') return;
       db.get("list").insert({
         todo: text.value,
-        time: new Date().toLocaleString().replace(/\//g, '-')
+        time: new Date().toLocaleString().replace(/\//g, '-'),
+        finished: false
       }).write();
       list.value = db.get("list").value();
       text.value = '';
       console.log(db.get("list").value());
     };
-    const todoClick = (item) => {
-      todoId.value = item.id;
+    const todoClick = item => {
+      if (timer) return;
+      item.icon = true;
+      timer = setTimeout(() => {
+        delete item.icon
+        db.get("list").find({ id: item.id }).set("finished", true).write();
+        list.value = db.read().get("list").value();
+        timer = null;
+      }, 300);
     };
-    const doClick = () => {
+    const doClick = item => {
+      if (timer) return;
+      item.icon = true;
+      timer = setTimeout(() => {
+        delete item.icon
+        db.get("list").find({ id: item.id }).set("finished", false).write();
+        list.value = db.read().get("list").value();
+        timer = null;
+      }, 300);
+    };
+    const del = item => {
+      db.get("list").remove({ id: item.id }).write();
+      list.value = db.read().get("list").value();
     };
     onMounted(() => {
       db.defaults({ list: [] }).write();
@@ -68,11 +113,10 @@ export default {
     return {
       text,
       list,
-      todoId,
-      doId,
       todoClick,
       doClick,
-      addList
+      addList,
+      del
     };
   }
 };
@@ -140,8 +184,13 @@ export default {
     align-items: center;
     text-align: left;
     min-width: 350px;
-    padding: 5px 15px;
+    padding: 5px 8px;
     cursor: pointer;
+    border-bottom: 1px dashed #d9d9d9;
+
+    &:last-child {
+      border-bottom: unset;
+    }
 
     .icon {
       position: relative;
@@ -172,10 +221,24 @@ export default {
       }
     }
 
+    .do-icon {
+      &:after {
+        transform: translateX(-50%) translateY(-50%) scale(1);
+        transition: all .3s;
+      }
+    }
+
     .content {
       flex: 1;
       display: flex;
       justify-content: space-between;
+
+      .left {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
     }
 
     .txt {
@@ -191,9 +254,36 @@ export default {
       color: #BCC3C5;
     }
 
+    .del {
+      display: none;
+      width: 20px;
+      height: 20px;
+      margin-left: 20px;
+
+      img {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    }
+
     &:hover {
       background-color: #e7e7e7;
+
+      .del {
+        display: block;
+      }
     }
+  }
+
+  .no-list {
+    width: 100px;
+    margin-top: 30px;
+  }
+
+  .no-tip {
+    font-size: 14px;
+    margin-top: 5px;
   }
 }
 

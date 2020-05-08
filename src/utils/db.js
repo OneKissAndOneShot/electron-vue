@@ -14,7 +14,7 @@ if (process.type !== "renderer") {
   }
 }
 
-const adapter = new FileSync(path.join(STOREPATH, "/data.json"));
+const adapter = new FileSync(path.join(STOREPATH, process.env.NODE_ENV === 'development' ? "/data.json" : "../data.json"));
 const db = new DataStore(adapter);
 
 db._.mixin(LodashId);
