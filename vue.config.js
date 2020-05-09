@@ -10,7 +10,7 @@ module.exports = {
           output: "./dist_msi"
         },
         win: {
-          icon: "./fi.ico",
+          icon: "./public/fi.ico",
           target: [
             {
               target: "nsis",
@@ -22,9 +22,9 @@ module.exports = {
           oneClick: false,
           allowElevation: true,
           allowToChangeInstallationDirectory: true,
-          installerIcon: "./fi.ico",
-          uninstallerIcon: "./fi.ico",
-          installerHeaderIcon: "./fi.ico",
+          installerIcon: "./public/fi.ico",
+          uninstallerIcon: "./public/fi.ico",
+          installerHeaderIcon: "./public/fi.ico",
           createDesktopShortcut: true,
           createStartMenuShortcut: true,
           shortcutName: "TodoList"
